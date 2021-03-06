@@ -30,6 +30,10 @@ var options2 = {
     url: 'http://localhost:4000/partsReload',
     method: 'POST'
 }
+var options3 = {
+    url: 'http://localhost:4000/repairShopReload',
+    method: 'POST'
+}
 
 var hyundaiUrl = {
     url: 'http://localhost:4000/hyundaiCreate',
@@ -148,6 +152,19 @@ var repairShop = {
     url: 'http://localhost:4000/repairShopCreate',
     method: 'POST'
 }
+function repairShopInit(){
+    request(options3, function(err, res, body){
+        if(!err && res.statusCode==200){
+            console.log(body);
+        }
+    });
+
+    request(repairShop, function(err,res,body){
+        if(!err && res.statusCode==200){
+            console.log(body);
+        }
+    });
+}
 
 function partsItemInit(){
 
@@ -155,7 +172,7 @@ function partsItemInit(){
         if(!err && res.statusCode==200){
             console.log(body);
         }
-    })
+    });
     request(options, function(err, res, body){
         if(!err && res.statusCode==200){
             console.log(body);
@@ -315,14 +332,12 @@ function partsItemInit(){
         }
     });
 }
+repairShopInit();
 partsItemInit();
-// schedule.scheduleJob('*/5 * * * *', () => {
-    // request(repairShop, function(err,res,body){
-    //     if(!err && res.statusCode==200){
-    //         console.log(body);
-    //     }
-
-    // })
 
 
-// });
+schedule.scheduleJob('* */6 * * *', () => {
+
+    partsItemInit();
+
+});

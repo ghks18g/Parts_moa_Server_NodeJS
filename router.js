@@ -6,7 +6,7 @@ import mime from "mime"
 import { count } from "console";
 import e from "express";
 
-const upload = multer({
+const upload = multer({ // 파일 업로드를 위해 사용되는 multipart/form-data 를 다루기 위한 node.js 미들웨어
     storage: multer.diskStorage({
         destination: (req, file, cb) => {
             cb(null,'images/');
@@ -27,7 +27,8 @@ module.exports = function(app, PartsMoaUser, Parts, RepairShop, LikeItems, ){
         this.id = id;
         this.year = year;
     }
-    async function insertItem(maker){
+
+    async function insertItem(maker){   // 제조사 별로 웹 페이지에서 부품 정보 scraping.
         const categoryList = [ 2010, 2020, 2030, 2040];
         let count = 0;
         let makerid = maker.id;
@@ -105,8 +106,8 @@ module.exports = function(app, PartsMoaUser, Parts, RepairShop, LikeItems, ){
         console.log(req.body.email);
     });
 
-    // Create
-    app.post('/sign_in', (req,res) => {
+    // 회원 가입.
+    app.post('/sign_in', (req,res) => { 
         var join_partsUser = new PartsMoaUser();
         join_partsUser.username = req.body.join_username;
         join_partsUser.email = req.body.join_email;
@@ -131,119 +132,8 @@ module.exports = function(app, PartsMoaUser, Parts, RepairShop, LikeItems, ){
         });
     });
 
-    app.post('/likeItemCheck', (req, res) => {
-        var message = "empty";
-        LikeItems.find({'useremail': {$eq: req.body.user_email}}, (err, docs) => {
-            console.log(docs);
-            for(let likeItem of docs){
-                if(likeItem.itemurl == req.body.item_url){
-                    message = "exist";
-                }
-            }
-            res.json(`${message}`);
-        })
-        
-    })
 
-    app.post('/likeItemload', (req,res) => {
-        LikeItems.find({'useremail':{$eq: req.body.user_email}}).populate("likeItem").exec((err, data) => {
-            if(err){
-                console.error(err);
-                res.status(500).send('like item load error!');
-            }
-            // console.log(data[2].likeItem);
-            var itemList = [];
-            for(let item of data){
-                itemList.push(item.likeItem);
-                // res.json(item.likeItem);
-            }
-            res.json(itemList);
-            // res.json(data.likeItem);
-        })
-        // LikeItems.find({'useremail':{$eq: req.body.user_email}},(err, docs) => {
-        //     console.log(docs);
-        //     console.log(docs.length);
-        //     var items = ""
-        //     for(var i=0; i<docs.length; i++){
-        //         console.log(docs[i].itemurl);
-        //         Parts.find({'url': {$eq: docs[i].itemurl}}, (err, data) => {
-        //             if(err){
-        //                 console.error(err);
-        //             }
-        //             console.log(data);
-        //         });
-        //         console.log("out of find function: ");
-                
-        //     }
-
-        //     if(err){
-        //         console.error(err);
-        //         res.status(500).send('like item load error!');
-        //     }
-        // })
-
-    })
-
-
-    app.post('/likeItemUpdate', (req,res) =>{
-        // var like_items = new LikeItems();
-        // like_items.useremail = req.body.user_email;
-        // like_items.itemurl = req.body.item_url;
-
-        // console.log(req.body.user_email);
-        // console.log(req.body.item_url);
-
-        Parts.findOne({'url': {$eq: req.body.item_url}}, (err, data) => {
-            if(err){
-                console.error(err);
-            }
-            console.log(data);
-            var like_items = new LikeItems();
-            like_items.useremail = req.body.user_email;
-            like_items.likeItem = data._id;
-            like_items.itemurl = req.body.item_url;
-            like_items.save((err) => {
-                if(err){
-                    console.error(err);
-                    res.json({message:'like Item create Error'});
-                    return;
-                }
-                console.log(like_items);
-                res.json({message: 'like Item Create OK'});
-            });
-        });
-
-        // like_items.save((err) =>{
-        //     if(err){
-        //         console.error(err);
-        //         res.json({message:'like Item create error!'});
-        //         return;
-        //     }
-        //     console.log(like_items);
-        //     res.json({message:'likeItem Create OK'});
-        // });
-        
-    });
-
-    app.post('/likeItemDelete', (req,res) => {
-        LikeItems.remove({itemurl: req.body.item_url, useremail: req.body.user_email}, (err) =>{
-            if(err){
-                console.error(err);
-                res.json({message:'like Item delete error!'});
-                return;
-            }
-            res.json({message: 'like Item delete OK'});
-        });
-    });
-
-    app.post('/likeItemDeleteAll', (req, res) => {
-        LikeItems.remove({}, (err, result) =>{
-            if(err) console.error(err);
-            console.log(result);
-        });
-    });
-
-    //Read
+    //회원 가입시 이메일 중복 여부 체크.
     app.post('/join_emailCheck', (req, res) => {
         var login_email = req.body.join_email;
         console.log(login_email);
@@ -269,6 +159,47 @@ module.exports = function(app, PartsMoaUser, Parts, RepairShop, LikeItems, ){
         });
     });
 
+    // 로그인 .
+    app.post('/login', (req, res) => {
+        var login_email = req.body.login_email;
+        var login_password = req.body.login_password;
+        console.log("[REQUEST: android -> node]");
+        console.log(login_email+"\n"+login_password);
+
+        PartsMoaUser.findOne({'email': {$eq:login_email}},(err, partsUsers) => {
+            if(err){
+                console.error(err);
+                return res.status(500).send({error: 'Mongo Read Error'});
+            }
+            if(partsUsers == null){
+                console.log("User Info : Null .. ");
+                return res.status(400).send();
+            } else if(partsUsers.password != login_password){
+                console.log("Password not correct!!");
+                return res.status(402).send();
+            }
+            console.log("Mongo DB : User check read");
+            console.log(partsUsers);
+            console.log("-----------------");
+            console.log(partsUsers.username);
+            console.log(partsUsers.email);
+            console.log(partsUsers.password);
+            console.log(partsUsers.carid);
+            console.log(partsUsers.imgprofile);
+            console.log(partsUsers.imgCar);
+
+            res.json({
+                username: partsUsers.username,
+                email: partsUsers.email,
+                password: partsUsers.password,
+                carid: partsUsers.carid,
+                carinfo: partsUsers.carinfo,
+            });
+            res.status(200).send();
+        });
+    });
+
+// 로그인 후 서버에 저장된 사용자 프로필 사진 및 배경(자동차)사진 다운로드.
     app.post('/profiledownload', (req, res) => {
         var login_email = req.body.email;
         console.log(req.body.email);
@@ -315,44 +246,6 @@ module.exports = function(app, PartsMoaUser, Parts, RepairShop, LikeItems, ){
         });
     });
     
-    app.post('/login', (req, res) => {
-        var login_email = req.body.login_email;
-        var login_password = req.body.login_password;
-        console.log("[REQUEST: android -> node]");
-        console.log(login_email+"\n"+login_password);
-
-        PartsMoaUser.findOne({'email': {$eq:login_email}},(err, partsUsers) => {
-            if(err){
-                console.error(err);
-                return res.status(500).send({error: 'Mongo Read Error'});
-            }
-            if(partsUsers == null){
-                console.log("User Info : Null .. ");
-                return res.status(400).send();
-            } else if(partsUsers.password != login_password){
-                console.log("Password not correct!!");
-                return res.status(402).send();
-            }
-            console.log("Mongo DB : User check read");
-            console.log(partsUsers);
-            console.log("-----------------");
-            console.log(partsUsers.username);
-            console.log(partsUsers.email);
-            console.log(partsUsers.password);
-            console.log(partsUsers.carid);
-            console.log(partsUsers.imgprofile);
-            console.log(partsUsers.imgCar);
-
-            res.json({
-                username: partsUsers.username,
-                email: partsUsers.email,
-                password: partsUsers.password,
-                carid: partsUsers.carid,
-                carinfo: partsUsers.carinfo,
-            });
-            res.status(200).send();
-        });
-    });
 
     function encode_base64(filename){
         fs.readFile(filename, (err,data) => {
@@ -363,6 +256,7 @@ module.exports = function(app, PartsMoaUser, Parts, RepairShop, LikeItems, ){
         })
     }
 
+    // 사용자 정보 업데이트시 프로필 , 배경(자동차) 사진 모두 갱신하는 경우.
     app.post("/userUpdateWithImg",upload.array('image'), (req, res) => {
         console.log(req.files[0].destination+req.files[0].filename);
         console.log(req.files[1].destination+req.files[1].filename);
@@ -382,6 +276,7 @@ module.exports = function(app, PartsMoaUser, Parts, RepairShop, LikeItems, ){
 
     });
 
+    // 사용자 업데이트 시 프로필 사진만 업데이트 하는 경우.
     app.post("/userUpdateWithProfile",upload.single('image'), (req, res) => {
         console.log(req.file.destination+req.file.filename);
         console.log(req.body.email);
@@ -399,6 +294,7 @@ module.exports = function(app, PartsMoaUser, Parts, RepairShop, LikeItems, ){
         });
     });
 
+    // 사용자 업데이트 시 배경(자동차) 사진만 업데이트 하는 경우.
     app.post("/userUpdateWithCar",upload.single('image'), (req, res) => {
         console.log(req.file.destination+req.file.filename);
         console.log(req.body.email);
@@ -416,6 +312,7 @@ module.exports = function(app, PartsMoaUser, Parts, RepairShop, LikeItems, ){
         });
     });
 
+    // 사용자 업데이트 시 사진 정보는 갱신하지 않는 경우.
     app.post("/userUpdate", (req, res) => {
         console.log(req.body.email);
         console.log(req.body.carid);
@@ -431,6 +328,125 @@ module.exports = function(app, PartsMoaUser, Parts, RepairShop, LikeItems, ){
         });
     });
 
+//관심상품 관련.
+    // 항목 로드 후, 관심상품으로 등록된 상품인지 여부 체크.
+    app.post('/likeItemCheck', (req, res) => {
+        var message = "empty";
+        LikeItems.find({'useremail': {$eq: req.body.user_email}}, (err, docs) => {
+            console.log(docs);
+            for(let likeItem of docs){
+                if(likeItem.itemurl == req.body.item_url){
+                    message = "exist";
+                }
+            }
+            res.json(`${message}`);
+        })
+        
+    })
+
+    // 관심상품 항목 정보 보내기.
+    app.post('/likeItemload', (req,res) => {
+        LikeItems.find({'useremail':{$eq: req.body.user_email}}).populate("likeItem").exec((err, data) => {
+            if(err){
+                console.error(err);
+                res.status(500).send('like item load error!');
+            }
+            // console.log(data[2].likeItem);
+            var itemList = [];
+            for(let item of data){
+                itemList.push(item.likeItem);
+                // res.json(item.likeItem);
+            }
+            res.json(itemList);
+            // res.json(data.likeItem);
+        })
+        // LikeItems.find({'useremail':{$eq: req.body.user_email}},(err, docs) => {
+        //     console.log(docs);
+        //     console.log(docs.length);
+        //     var items = ""
+        //     for(var i=0; i<docs.length; i++){
+        //         console.log(docs[i].itemurl);
+        //         Parts.find({'url': {$eq: docs[i].itemurl}}, (err, data) => {
+        //             if(err){
+        //                 console.error(err);
+        //             }
+        //             console.log(data);
+        //         });
+        //         console.log("out of find function: ");
+                
+        //     }
+
+        //     if(err){
+        //         console.error(err);
+        //         res.status(500).send('like item load error!');
+        //     }
+        // })
+
+    })
+
+    // 관심 상품에 새 항목 추가.
+    app.post('/likeItemUpdate', (req,res) =>{
+        // var like_items = new LikeItems();
+        // like_items.useremail = req.body.user_email;
+        // like_items.itemurl = req.body.item_url;
+
+        // console.log(req.body.user_email);
+        // console.log(req.body.item_url);
+
+        Parts.findOne({'url': {$eq: req.body.item_url}}, (err, data) => {
+            if(err){
+                console.error(err);
+            }
+            console.log(data);
+            var like_items = new LikeItems();
+            like_items.useremail = req.body.user_email;
+            like_items.likeItem = data._id;
+            like_items.itemurl = req.body.item_url;
+            like_items.save((err) => {
+                if(err){
+                    console.error(err);
+                    res.json({message:'like Item create Error'});
+                    return;
+                }
+                console.log(like_items);
+                res.json({message: 'like Item Create OK'});
+            });
+        });
+
+        // like_items.save((err) =>{
+        //     if(err){
+        //         console.error(err);
+        //         res.json({message:'like Item create error!'});
+        //         return;
+        //     }
+        //     console.log(like_items);
+        //     res.json({message:'likeItem Create OK'});
+        // });
+        
+    });
+
+    // 관심 상품 항목중 해당 항목 삭제.
+    app.post('/likeItemDelete', (req,res) => {
+        LikeItems.remove({itemurl: req.body.item_url, useremail: req.body.user_email}, (err) =>{
+            if(err){
+                console.error(err);
+                res.json({message:'like Item delete error!'});
+                return;
+            }
+            res.json({message: 'like Item delete OK'});
+        });
+    });
+
+    // 관심 상품 정보 모두 삭제.
+    app.post('/likeItemDeleteAll', (req, res) => {
+        LikeItems.remove({}, (err, result) =>{
+            if(err) console.error(err);
+            console.log(result);
+        });
+    });
+
+//상품 항목 정보 보내는 부분.
+    // db에 저장된 상품들 정보 요청 처리.
     app.post("/loadItem", (req, res) => {
         var carid = req.body.carid;
         console.log(carid);
@@ -443,6 +459,8 @@ module.exports = function(app, PartsMoaUser, Parts, RepairShop, LikeItems, ){
             res.json(docs);
         });
     });
+
+    // db에 저장된 상품 항목 정보 중 카테고리별로 요청한 경우.
     app.post("/loadItemWithCategory", (req, res) => {
         var carid = req.body.carid;
         var ca_id = req.body.ca_id;
@@ -458,21 +476,7 @@ module.exports = function(app, PartsMoaUser, Parts, RepairShop, LikeItems, ){
         });
     });
 
-    app.post("/loadRepairShop", (req, res) => {
-        var latitude = req.body.lat;
-        var longitude = req.body.lng;
-        console.log(`${latitude}/${longitude}`);
-        // 1km 이내 자동차 공업소 정보.
-        RepairShop.find({'lat':{$lte:latitude+0.045,$gte:latitude-0.045},'lng':{$lte:longitude+0.0560,$gte:longitude-0.0560}}, (err, docs) => {
-            if(err){
-                console.error(err);
-                return res.status(500).send({error:'Repair shop read error!'});
-            }
-            console.log(docs);
-            res.json(docs);
-        });
-    });
-
+    // 상품 항목 모두 삭제.
     app.post('/partsReload',(req, res) => {
         Parts.remove({},function(err,result){
             if(err){ console.log(err)}
@@ -1449,14 +1453,13 @@ module.exports = function(app, PartsMoaUser, Parts, RepairShop, LikeItems, ){
         res.json({message: result});
     });
 
-    
-
+    // 정비업체 정보 api로 받아서 db 저장.
     app.post('/repairShopCreate', (req, res) => { // 자동차 정비 업체 정보 db 저장.
         getRepairShop().then(function (result){
             // var repairshop = new RepairShop();
 
             for(var i = 0; i<result.length; i++){
-                console.log(result[i]);
+                // console.log(result[i]);
 
                 var repair = new RepairShop();
                 
@@ -1480,4 +1483,27 @@ module.exports = function(app, PartsMoaUser, Parts, RepairShop, LikeItems, ){
         });
     });
 
+    // 정비업체 정보 요청 처리.
+    app.post("/loadRepairShop", (req, res) => {
+        var latitude = req.body.lat;
+        var longitude = req.body.lng;
+        console.log(`${latitude}/${longitude}`);
+        // 1km 이내 자동차 공업소 정보.
+        RepairShop.find({'lat':{$lte:latitude+0.045,$gte:latitude-0.045},'lng':{$lte:longitude+0.0560,$gte:longitude-0.0560}}, (err, docs) => {
+            if(err){
+                console.error(err);
+                return res.status(500).send({error:'Repair shop read error!'});
+            }
+            console.log(docs);
+            res.json(docs);
+        });
+    });
+
+    // 정비 업체 정보 전체 삭제.
+    app.post('/repairShopReload', (req, res) => {
+        RepairShop.remove({},function(err,result){
+            if(err){ console.log(err)}
+            else { /*console.log("Result: ", result)*/}
+        });
+    })
 }

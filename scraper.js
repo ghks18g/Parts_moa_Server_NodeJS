@@ -8,10 +8,12 @@ let PAGE_END;
 
 let ulList = [];
 
-String.prototype.replaceAll = function(src, des){
+String.prototype.replaceAll = function(src, des){   // 문자열 자르기.
     return this.split(src).join(des);
 }
-export function getPage(url) {
+
+// 웹 페이지 scraping 할 때 페이지가 어디까지 있는지 계산.
+export function getPage(url) {  
     return new Promise(resolve => {
         request(url, function(err,res,body){
             const $ = client.load(body);
@@ -33,6 +35,7 @@ export function getPage(url) {
     });
 }
 
+// 실질적으로 scraping 하는 부분.
 export function getData(source_url,page) {
     
     var url ="";
@@ -68,6 +71,7 @@ export function getData(source_url,page) {
         });
 }
 
+// api를 통해 정비업체 정보를 요청하고 정리하는 부분.
 export function getRepairShop(){
     
     let repair_info_api_key="c8ylZBiYVOXRJ%2FNp8dnxbl5xazjAWmJniKC%2BRjns8FBxFgK2dcMOZ31LBk7mE82TVySKZQ2cWTGkDtDC5doMEg%3D%3D";

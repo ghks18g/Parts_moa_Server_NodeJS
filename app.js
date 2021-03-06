@@ -24,7 +24,7 @@ const get_data = (req, res) => {
 app.use(cookieParser());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({extended: true}));
-app.use(helmet());
+app.use(helmet());  // 보안 관련 미들웨어.
 app.use(morgan("dev"));
 app.set('view engine', 'pug');
 
